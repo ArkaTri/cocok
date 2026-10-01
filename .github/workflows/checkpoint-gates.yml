@@ -1,0 +1,39 @@
+# Re-run every checkpoint gate up to the newest cp-NN tag reachable from HEAD (docs/CHECKPOINTS.md §0.3).
+name: checkpoint-gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["cp-*"]
+
+permissions: {}
+
+jobs:
+  gates:
+    name: gates-upto latest cp tag
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Find latest checkpoint tag
+        id: cp
+        run: |
+          tag=$(git describe --tags --match 'cp-[0-9][0-9]' --abbrev=0 2>/dev/null || true)
+          echo "number=${tag#cp-}" >> "$GITHUB_OUTPUT"
+          echo "Latest checkpoint tag: ${tag:-none}"
+      - name: Run gates
+        if: steps.cp.outputs.number != ''
+        env:
+          CP: ${{ steps.cp.outputs.number }}
+        run: |
+          uv sync --all-packages --frozen
+          make gates-upto CP="$CP"

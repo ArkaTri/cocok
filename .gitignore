@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+# Secrets and local config
+.env
+.env.*
+!.env.example
+# Data and experiment artifacts (never in git — blueprint §4.5)
+data/raw/
+data/interim/
+mlruns/
+evals/cache/
+evals/results/
+*.onnx
+*.safetensors
+# Web (CP-26)
+node_modules/
+.next/
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

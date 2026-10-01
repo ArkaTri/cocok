@@ -1,0 +1,10 @@
+[project]
+name = "cocok-core"
+version = "0.1.0"
+description = "Cocok domain layer: pure Python models, validation, matching and confidence (no I/O)."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.13"]
+build-backend = "uv_build"

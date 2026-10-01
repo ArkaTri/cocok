@@ -1,0 +1,38 @@
+# Lint, types and fast tests on every PR and on main. Blueprint §9, §10; ADR-0011 (SHA pins, least privilege).
+name: ci-python
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint · types · tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Install workspace (frozen lockfile)
+        run: uv sync --all-packages --frozen
+      - name: Lint + layering
+        run: make lint
+      - name: Types
+        run: make type
+      - name: Fast tests
+        run: make test
+      - name: Core tests + doctests + coverage gate
+        run: make test-core

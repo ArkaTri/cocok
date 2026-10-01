@@ -1,0 +1,10 @@
+[project]
+name = "cocok-adapters"
+version = "0.1.0"
+description = "Cocok adapters: concrete implementations of the core ports (DB, storage, LLM, OCR, queue)."
+requires-python = ">=3.12"
+dependencies = ["cocok-core"]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.13"]
+build-backend = "uv_build"

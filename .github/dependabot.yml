@@ -1,0 +1,24 @@
+# Dependency updates. Cooldown: only versions released >= 7 days ago are proposed (supply-chain hygiene, ADR-0011).
+# ML libraries are grouped into one PR so they are reviewed and benchmarked together (ADR-0012).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      include: ["*"]
+    groups:
+      ml:
+        patterns: ["torch*", "transformers", "peft", "trl", "accelerate", "datasets", "unsloth*", "scikit-learn", "scipy", "mlflow*", "docling*", "paddle*", "onnx*", "rapidocr*", "opencv*"]
+      dev-tools:
+        dependency-type: development

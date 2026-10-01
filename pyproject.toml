@@ -1,0 +1,164 @@
+# Cocok — uv workspace root (virtual: it is not a package itself).
+# Blueprint: docs/BLUEPRINT.md §7 (repo layout), §8 (stack), §9 (standards).
+
+[project]
+name = "cocok"
+version = "0.1.0"
+description = "Evaluation-first document reconciliation agent for Indonesian back-offices."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "ruff>=0.16",
+  "mypy>=2.3",
+  "import-linter>=2.15",
+  "pytest>=9.1",
+  "pytest-asyncio>=1.4",
+  "pytest-cov>=7.1",
+  "hypothesis>=6.168",
+  "pre-commit>=4.6",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.uv.workspace]
+# Explicit list (not a glob) so non-Python folders such as apps/web never break the workspace.
+members = [
+  "packages/core",
+  "packages/adapters",
+  "packages/ml",
+  "apps/api",
+  "apps/worker",
+]
+
+[tool.uv.sources]
+cocok-core = { workspace = true }
+cocok-adapters = { workspace = true }
+cocok-ml = { workspace = true }
+cocok-api = { workspace = true }
+cocok-worker = { workspace = true }
+
+# ----------------------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["packages/core/src", "packages/adapters/src", "packages/ml/src", "apps/api/src", "apps/worker/src"]
+extend-exclude = ["docs/archive"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "D", "C90", "N", "SIM", "RUF", "PLR", "PLW", "S"]
+ignore = [
+  "D100",   # module docstrings: placeholder modules stay empty until their checkpoint (STRUKTUR_PROJECT)
+  "D104",   # package docstrings: same reason; function/class docstrings (D101-D103) stay enforced
+  "D105",   # magic methods are self-explanatory
+  "D107",   # __init__ documented on the class
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["D", "S101", "PLR2004", "PLR0913", "N802"]
+"conftest.py" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 8
+
+[tool.ruff.lint.isort]
+known-first-party = ["cocok_core", "cocok_adapters", "cocok_ml", "cocok_api", "cocok_worker"]
+
+# ----------------------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["packages/core/src", "packages/adapters/src"]
+
+# ----------------------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["packages", "apps"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
+xfail_strict = true
+markers = [
+  "cp00: acceptance test for checkpoint CP-00 (docs/CHECKPOINTS.md)",
+  "cp01: acceptance test for checkpoint CP-01 (docs/CHECKPOINTS.md)",
+  "cp02: acceptance test for checkpoint CP-02 (docs/CHECKPOINTS.md)",
+  "cp03: acceptance test for checkpoint CP-03 (docs/CHECKPOINTS.md)",
+  "cp04: acceptance test for checkpoint CP-04 (docs/CHECKPOINTS.md)",
+  "cp05: acceptance test for checkpoint CP-05 (docs/CHECKPOINTS.md)",
+  "cp06: acceptance test for checkpoint CP-06 (docs/CHECKPOINTS.md)",
+  "cp07: acceptance test for checkpoint CP-07 (docs/CHECKPOINTS.md)",
+  "cp08: acceptance test for checkpoint CP-08 (docs/CHECKPOINTS.md)",
+  "cp09: acceptance test for checkpoint CP-09 (docs/CHECKPOINTS.md)",
+  "cp10: acceptance test for checkpoint CP-10 (docs/CHECKPOINTS.md)",
+  "cp11: acceptance test for checkpoint CP-11 (docs/CHECKPOINTS.md)",
+  "cp12: acceptance test for checkpoint CP-12 (docs/CHECKPOINTS.md)",
+  "cp13: acceptance test for checkpoint CP-13 (docs/CHECKPOINTS.md)",
+  "cp14: acceptance test for checkpoint CP-14 (docs/CHECKPOINTS.md)",
+  "cp15: acceptance test for checkpoint CP-15 (docs/CHECKPOINTS.md)",
+  "cp16: acceptance test for checkpoint CP-16 (docs/CHECKPOINTS.md)",
+  "cp17: acceptance test for checkpoint CP-17 (docs/CHECKPOINTS.md)",
+  "cp18: acceptance test for checkpoint CP-18 (docs/CHECKPOINTS.md)",
+  "cp19: acceptance test for checkpoint CP-19 (docs/CHECKPOINTS.md)",
+  "cp20: acceptance test for checkpoint CP-20 (docs/CHECKPOINTS.md)",
+  "cp21: acceptance test for checkpoint CP-21 (docs/CHECKPOINTS.md)",
+  "cp22: acceptance test for checkpoint CP-22 (docs/CHECKPOINTS.md)",
+  "cp23: acceptance test for checkpoint CP-23 (docs/CHECKPOINTS.md)",
+  "cp24: acceptance test for checkpoint CP-24 (docs/CHECKPOINTS.md)",
+  "cp25: acceptance test for checkpoint CP-25 (docs/CHECKPOINTS.md)",
+  "cp26: acceptance test for checkpoint CP-26 (docs/CHECKPOINTS.md)",
+  "cp27: acceptance test for checkpoint CP-27 (docs/CHECKPOINTS.md)",
+  "cp28: acceptance test for checkpoint CP-28 (docs/CHECKPOINTS.md)",
+  "cp29: acceptance test for checkpoint CP-29 (docs/CHECKPOINTS.md)",
+  "cp30: acceptance test for checkpoint CP-30 (docs/CHECKPOINTS.md)",
+  "cp31: acceptance test for checkpoint CP-31 (docs/CHECKPOINTS.md)",
+  "cp32: acceptance test for checkpoint CP-32 (docs/CHECKPOINTS.md)",
+  "cp33: acceptance test for checkpoint CP-33 (docs/CHECKPOINTS.md)",
+  "integration: needs external services (testcontainers); run with make test-int",
+  "slow: long-running; skipped by fast gates unless FULL=1",
+]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+skip_empty = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+# ----------------------------------------------------------------------------- import-linter (blueprint §7.1)
+[tool.importlinter]
+root_packages = ["cocok_core", "cocok_adapters", "cocok_ml", "cocok_api", "cocok_worker"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "core is independent of every other cocok package"
+type = "forbidden"
+source_modules = ["cocok_core"]
+forbidden_modules = ["cocok_adapters", "cocok_ml", "cocok_api", "cocok_worker"]
+
+[[tool.importlinter.contracts]]
+name = "api and worker never import ml at runtime"
+type = "forbidden"
+source_modules = ["cocok_api", "cocok_worker"]
+forbidden_modules = ["cocok_ml"]
+
+[[tool.importlinter.contracts]]
+name = "core stays pure: no I/O, framework or heavy numeric libraries"
+type = "forbidden"
+source_modules = ["cocok_core"]
+forbidden_modules = ["httpx", "requests", "sqlalchemy", "psycopg", "boto3", "fastapi", "langgraph", "procrastinate", "numpy", "pandas", "scipy", "sklearn", "torch"]
+
+[[tool.importlinter.contracts]]
+name = "retired dependencies stay retired (ADR-0004, ADR-0008)"
+type = "forbidden"
+source_modules = ["cocok_core", "cocok_adapters", "cocok_ml", "cocok_api", "cocok_worker"]
+forbidden_modules = ["redis", "arq", "passlib", "jose"]
