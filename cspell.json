@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": [".venv/**", "uv.lock", "docs/archive/**", "schemas/**", "**/*.lock"],
+  "words": [
+    "Arka", "Cocok", "cocok",
+    "upto", "doctest", "doctests", "pytest", "mypy", "pyproject", "venv", "uvx", "pydantic", "pydocstyle",
+    "zizmor", "gitleaks", "dependabot", "pyyaml", "hypothesmith", "importlinter", "grimp", "addopts",
+    "fastapi", "sqlalchemy", "alembic", "psycopg", "asyncpg", "procrastinate", "langgraph", "langfuse",
+    "structlog", "tenacity", "httpx", "pwdlib", "argon", "uvicorn", "minio", "pgvector", "pgtrgm",
+    "peft", "unsloth", "scikit", "scipy", "sklearn", "mlflow", "docling", "onnx", "onnxruntime",
+    "rapidocr", "pypdfium", "paddleocr", "trocr", "qwen", "lora", "qlora", "crnn", "torchvision",
+    "albumentations", "augraphy", "zensical", "mkdocstrings", "kaggle", "bedrock", "vllm",
+    "caddy", "Caddyfile", "graviton", "testcontainers", "schemathesis", "harden", "pnpm", "shadcn",
+    "terbilang", "kwitansi", "nota", "faktur", "rupiah", "NPWP", "NITKU", "NIK", "PPN", "DPP", "PKP",
+    "Coretax", "UMKM", "jalan", "surat", "sejuta", "seribu", "seratus", "sepuluh", "sebelas", "belas",
+    "puluh", "ratus", "ribu", "juta", "miliar", "milyar", "triliun", "Pebruari", "Nopember", "Jombang",
+    "toko", "bangunan", "sak", "batang", "kubik"
+  ]
+}
