@@ -269,7 +269,7 @@ step "python pins"             test "$(cat .python-version)" = "3.13"
 1. [A:R3] `Money` value object; `LineItem`, `ExtractedDocument`, `FieldMeta` (Pydantic v2, frozen) + `REQUIRED_FIELDS` per doc_type (blueprint §3.2).
 2. [A:R3] `DocumentStatus`, `Event`, `transition()` (blueprint §6.2) + `InvalidTransition`.
 3. [A:R3] Error hierarchy `cocok_core.errors`.
-4. [A:R3] Ports (`typing.Protocol`): `Extractor`, `AmountReader`, `OcrEngine`, `Storage`, `LLMClient`, `JobQueue`, `Clock`, `IdGenerator`, repositories.
+4. [A:R3] Ports (`typing.Protocol`): `Extractor`, `AmountReader`, `OcrEngine`, `Storage`, `LLMClient`, `JobQueue`, `Clock`, `IdGenerator`. *(Repository ports moved to CP-21/22, decided in CP-02: their shape depends on the DB schema.)*
 5. [A:R3] JSON-schema export: `python -m cocok_core.schema_export > schemas/extracted_document.schema.json` (used later for structured outputs and prompts); golden snapshot test.
 6. [A:R6] Hypothesis state-machine test: random event sequences never reach a state outside §6.2.
 
@@ -277,7 +277,7 @@ step "python pins"             test "$(cat .python-version)" = "3.13"
 
 **Specs.** FS-CM-01 … FS-CM-05.  **Docs.** docstrings; `docs/progress/CP-02.md`.
 
-**Gate** (`cp02.sh`): `pytest -m cp02` · doctests `cocok_core/models` · `mypy` strict core · schema snapshot unchanged (`git diff --exit-code schemas/`).
+**Gate** (`cp02.sh`): lockfile · lint · `mypy` strict core · mypy on the port fakes · `pytest -m cp02` · doctests `cocok_core/models` + `errors.py` · core coverage ≥ 90 % · schema snapshot unchanged (`schema_export --check`, works without a clean git tree).
 
 **Done when.** Every allowed transition in §6.2 is a passing test; every other `(state, event)` pair raises `InvalidTransition` (exhaustive parametrized test).
 
@@ -286,6 +286,8 @@ step "python pins"             test "$(cat .python-version)" = "3.13"
 |---|---|---|
 | Schema snapshot changes on every run | Unordered dict/enum output | `json.dumps(..., sort_keys=True, indent=2)` |
 | `Decimal` qty serializes as float | Pydantic default | Field serializer → string; JSON schema `type: string, pattern` |
+| `Money(5.0)` or a timestamp date is accepted | `model_validate(..., strict=False)` overrides field-level `Strict()` | Never pass `strict=False`; test `test_strict_false_would_disable_the_protection` |
+| Docstring text appears in the JSON schema | Pydantic copies class docstrings into `description` | Short one-line docstrings on models; `json_schema_extra` for `Money` |
 | mypy complains about Protocol variance | Mutable attributes in Protocol | Use methods/properties only in ports |
 
 ---

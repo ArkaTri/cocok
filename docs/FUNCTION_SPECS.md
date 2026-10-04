@@ -80,21 +80,27 @@ def parse_money(text: str) -> Money:
 ## 1. Core domain models (`packages/core/src/cocok_core/models`, `errors.py`, `ports`) — agent-owned (R3), CP-02
 
 ### FS-CM-01 `Money`
-`@dataclass(frozen=True, slots=True) class Money: amount_idr: int`
-* **Contract.** Immutable; `amount_idr` is a Python `int` (reject `bool`, `float`, `Decimal` with fraction). Supports
-  `+`, `-`, comparison, `sum()` (`Money.zero()` start). Multiplication only via `Money.times(qty: Decimal, rounding)`
-  which returns a new `Money` using an explicit rounding mode (no implicit float).
+`@dataclass(frozen=True, slots=True, order=True) class Money: amount_idr: int` — *implemented CP-02*
+* **Contract.** Immutable; `amount_idr` must be exactly `int` (`bool`, `float`, `Decimal`, `str` → `TypeError`;
+  stricter than v2.1, which allowed integral `Decimal`). **Negative amounts are allowed** (differences such as
+  `invoice − PO`); "a total must be positive" is a validator rule (CP-04). Supports `+`, `-`, unary `-`,
+  comparison and `sum(xs, Money.zero())` (no `0 + Money`). Multiplication only via
+  `Money.times(qty: Decimal, rounding)` with `rounding ∈ {"half_up","half_even","floor","ceiling"}`; NaN/∞ and
+  `float` qty rejected; computed at 60-digit precision, then rounded once.
+* **Inside Pydantic models** `amount_idr` is `Strict()`: `1250000.0`, `"1250000"`, `true` and extra keys are
+  rejected. ⚠ `model_validate(..., strict=False)` overrides this — never pass it.
 * **Examples.** `Money(1_250_000) + Money(50_000) == Money(1_300_000)`; `Money(1.5)` → `TypeError`;
   `Money(10_000).times(Decimal("2.5"), "half_up") == Money(25_000)`.
-* **Tests.** Hypothesis: associativity of `+`; `times(Decimal(1)) == self`.
+* **Tests.** Hypothesis: associativity and commutativity of `+`, `(a + b) - b == a`, `times(Decimal(1)) == self`;
+  table of rounding modes incl. negative amounts; huge amounts stay exact.
 
-### FS-CM-02 `DocumentStatus`, `Event`, `transition`
-`def transition(current: DocumentStatus, event: Event) -> DocumentStatus`
-* **Contract.** Implements blueprint §6.2 exactly; pure; raises `InvalidTransition(code="INVALID_TRANSITION",
-  current, event)` for any pair not in the table. `FAILED → QUEUED` allowed only via `Event.RETRY` and only if
-  `retry_count < MAX_RETRIES (3)`, else `InvalidTransition(code="RETRY_LIMIT_REACHED")`. Signature:
-  `transition(current, event, *, retry_count: int = 0)`. Helpers: `allowed_events(status)`, `TERMINAL`
-  (`REJECTED`, `POSTED`). *(Implemented CP-02.)*
+### FS-CM-02 `DocumentStatus`, `Event`, `transition` — *implemented CP-02*
+`def transition(current: DocumentStatus, event: Event, *, retry_count: int = 0) -> DocumentStatus`
+* **Contract.** Implements blueprint §6.2 exactly as a read-only lookup table; pure; raises
+  `InvalidTransition(code="INVALID_TRANSITION", current=..., event=...)` for any pair not in the table.
+  `FAILED → QUEUED` only via `Event.RETRY` and only if `retry_count < MAX_RETRIES (3)`, else
+  `InvalidTransition(code="RETRY_LIMIT_REACHED")`. Negative `retry_count` → `ValueError` (caller bug).
+  Helpers: `allowed_events(status) -> frozenset[Event]`, `TERMINAL = {REJECTED, POSTED}`.
 * **Transition table (the test oracle).**
 
 | From | Event | To |
@@ -110,43 +116,62 @@ def parse_money(text: str) -> Money:
 | AUTO_APPROVED, APPROVED | POST | POSTED |
 | FAILED | RETRY (retry_count < 3) | QUEUED |
 
-* **Tests.** Exhaustive parametrization over `DocumentStatus × Event`; Hypothesis `RuleBasedStateMachine`.
+* **Tests.** Exhaustive parametrization over all 10 × 10 `DocumentStatus × Event` pairs against a hand-copied
+  oracle; every status reachable from UPLOADED; every non-terminal status can reach a terminal one; Hypothesis
+  `RuleBasedStateMachine` with random event sequences.
 
-### FS-CM-03 `ExtractedDocument`, `LineItem`, `FieldMeta`, `REQUIRED_FIELDS`
-* **Contract.** Pydantic v2 models mirroring blueprint §3.2, `model_config = ConfigDict(frozen=True, extra="forbid")`.
-  **Every field except `doc_type` is optional (`None`)**: requiredness depends on `doc_type` and lives only in
-  `REQUIRED_FIELDS`, so a missing field becomes a `MISSING_REQUIRED` issue (FS-CV-08) instead of a crash.
-  `vendor_npwp` must already be 16 digits and `vendor_nitku` 22 digits (normalization happens in FS-CV-04/05).
-  `REQUIRED_FIELDS: Mapping[DocType, frozenset[str]]` from blueprint §3.2 table. `FieldMeta.bbox` validator: 5
-  numbers, `0 ≤ x0 < x1 ≤ 1`, `0 ≤ y0 < y1 ≤ 1`, `page ≥ 0`. `confidence ∈ [0, 1]`.
-* **Schema export.** `schema_export.main()` writes the JSON schema with sorted keys (golden snapshot test).
+### FS-CM-03 `ExtractedDocument`, `LineItem`, `FieldMeta`, `REQUIRED_FIELDS` — *implemented CP-02*
+* **Contract.** Pydantic v2 models mirroring blueprint §3.2, `ConfigDict(frozen=True, extra="forbid")`.
+  **Every field except `doc_type` is optional (`None`)**: requiredness lives only in `REQUIRED_FIELDS`
+  (and `REQUIRED_LINE_ITEM_FIELDS`: surat jalan items need `description` + `qty`), so a missing field becomes a
+  `MISSING_REQUIRED` issue (FS-CV-08) instead of a crash.
+* **Field types.** Free text: blank → `None`, 1–500 chars. `vendor_npwp` exactly 16 digits, `vendor_nitku` exactly
+  22 digits (normalization happens in FS-CV-04/05). `doc_date`: strict `date` (ISO string in JSON; timestamps and
+  `"01/10/2026"` rejected — D/M/Y parsing is FS-CV-03). `qty`: `Decimal`, serialized as a JSON **string**
+  (`"2.5"`), schema `type: string, pattern ^-?\d+(\.\d+)?$`; `"2,5"`, `"1e3"`, NaN rejected.
+  `line_items`: tuple, `null` → `()`.
+* **`FieldMeta`.** `value_raw`, `value_normalized` (JSON value), `confidence ∈ [0, 1] | None` (None = not yet
+  calibrated), `bbox = (page ≥ 0, x0, y0, x1, y1)` with `0 ≤ x0 < x1 ≤ 1`, `0 ≤ y0 < y1 ≤ 1`, `bbox_source`,
+  `signals: dict[str, float]`. Invariant: a box needs a source, and source `none` needs no box.
+* **Where metadata lives (decision CP-02).** NOT inside `ExtractedDocument` — that schema is the LLM output format
+  and must not ask the model to invent confidences. Metadata travels in `ExtractionResult.field_meta`, keyed by
+  field path: `"total_amount"` or `"line_items[0].unit_price"` (`is_valid_field_path`).
+* **Schema export.** `python -m cocok_core.schema_export --write|--check PATH`; sorted keys, 2-space indent, short
+  descriptions only (docstrings must not leak into the LLM schema); golden snapshot
+  `schemas/extracted_document.schema.json`.
 * **Edge cases.** `qty` accepts `"2,5"`? **No** — models receive normalized values; parsing lives in FS-CV-*.
 
-### FS-CM-04 Error hierarchy
-`DomainError(code: str, message: str, **context)` → `ValidationError` (`MoneyParseError`, `DateParseError`,
-`NpwpError`, `TerbilangError`, `RulesError`), `InvalidTransition`, `LicenseViolation`, `RetryableError`
-(`ExternalTimeout`, `RateLimited`, `ProviderUnavailable`), `PermanentExternalError`, `CalibratorMismatch`.
-* **Contract.** Every error has a stable `code` (UPPER_SNAKE, validated); each class has a `default_code`;
-  `RetryableError` is the **only** base the queue retries on. Names without an `Error` suffix are deliberate
-  (ruff N818 ignored). Also `InvalidModelOutput` (FS-AD-01). *(Implemented CP-02.)*
+### FS-CM-04 Error hierarchy — *implemented CP-02*
+`DomainError(message: str = "", *, code: str | None = None, **context)` → `DomainValidationError`
+(`MoneyParseError`, `DateParseError`, `NpwpError`, `TerbilangError`, `RulesError`), `InvalidTransition`,
+`InvalidModelOutput` (FS-AD-01), `LicenseViolation`, `CalibratorMismatch`, `RetryableError` (`ExternalTimeout`,
+`RateLimited`, `ProviderUnavailable`), `PermanentExternalError`.
+* **Contract.** Every class has a unique UPPER_SNAKE `default_code`; a raise may override `code`; invalid codes →
+  `ValueError`. `context` is read-only; `to_dict()` gives `{code, message, context}` for the API. `RetryableError`
+  is the **only** base the queue retries on. Names without an `Error` suffix are deliberate (ruff N818 ignored
+  for `errors.py` only).
+* **Rename (CP-02).** v2.1 called the validation base `ValidationError`; it is `DomainValidationError` now, because
+  `pydantic.ValidationError` is used in the same modules and identical names in one `except` hide bugs.
 
-### FS-CM-05 Ports (`typing.Protocol`)
-Signatures (async where I/O). Images cross ports as `PageImage` (bytes + mime + size) because `core` may not
-import numpy; adapters decode. DB transactions cross as an opaque `Transaction` handle. *(Implemented CP-02 in
-`cocok_core.ports`; this block is the summary.)*
+### FS-CM-05 Ports (`typing.Protocol`) — *implemented CP-02 in `cocok_core.ports`*
+Signatures (async where I/O). Images cross ports as `PageImage` (encoded bytes + mime + size + page) because
+`core` may not import numpy; adapters decode. DB transactions cross as the opaque `Transaction` protocol, so `core`
+never imports psycopg. All ports are `@runtime_checkable`.
 ```python
 class Extractor(Protocol):
-    async def extract(
-        self, doc: DocumentInput
-    ) -> ExtractionResult: ...  # fields + raw_output + cost + latency
+    async def extract(self, doc: DocumentInput) -> ExtractionResult: ...
+
+    # DocumentInput(document_id, pages: tuple[PageImage, ...], doc_type_hint, page_texts)
+    # ExtractionResult(document, field_meta: Mapping[path, FieldMeta], extractor_id, raw_output,
+    #                  cost_usd: Decimal, latency_ms)
 
 
 class AmountReader(Protocol):
-    def read(self, crop: ImageArray) -> AmountRead: ...  # text, value: Money|None, seq_prob
+    def read(self, crop: PageImage) -> AmountRead: ...  # text, value: Money|None, seq_prob
 
 
 class OcrEngine(Protocol):
-    def lines(self, page: ImageArray) -> list[OcrLine]: ...  # text, bbox (normalized), score
+    def lines(self, page: PageImage) -> list[OcrLine]: ...  # text, box (normalized), score
 
 
 class Storage(Protocol):
@@ -156,15 +181,16 @@ class Storage(Protocol):
 
 
 class LLMClient(Protocol):
-    async def structured(
-        self, req: StructuredRequest
-    ) -> StructuredResponse: ...  # json, usage, cost_usd, model_id
+    async def structured(self, req: StructuredRequest) -> StructuredResponse: ...
+
+    # StructuredRequest(prompt_id, system, user, json_schema, schema_name, images, max_output_tokens)
+    # StructuredResponse(data, raw_text, model_id, input_tokens, output_tokens, cost_usd, latency_ms)
 
 
 class JobQueue(Protocol):
     async def enqueue_in_tx(
-        self, conn: AsyncConnection, task: str, args: dict, lock: str
-    ) -> str | None: ...
+        self, tx: Transaction, task: str, args: Mapping[str, object], lock: str
+    ) -> str | None: ...  # job id, or None if a job with this lock is already queued
 
 
 class Clock(Protocol):
@@ -174,8 +200,11 @@ class Clock(Protocol):
 class IdGenerator(Protocol):
     def new(self) -> UUID: ...  # UUIDv7
 ```
-* **Contract.** Ports expose domain types only (no SDK objects). Each port has one shared contract-test suite
-  (`packages/adapters/tests/contracts/test_<port>.py`) parametrized over adapters.
+* **Contract.** Ports expose domain types only (no SDK objects) — enforced by `test_ports_speak_domain_types_only`.
+  Each port has one shared contract-test suite (`packages/adapters/tests/contracts/test_<port>.py`) parametrized
+  over adapters. Test fakes for every port live in `packages/core/tests/test_ports.py`.
+* **Repository ports** (database access) are defined in CP-21/22 together with the schema (decision CP-02: their
+  shape depends on the tables, so guessing them now would only create rework).
 
 ---
 
@@ -818,12 +847,12 @@ empirical and the certified operating points.
   instructions inside (blueprint §13 LLM rules).
 
 ### FS-AD-04 `RapidOcrEngine.lines`
-`def lines(page: ImageArray) -> list[OcrLine]` — `OcrLine(text, bbox_norm, score)`
+`def lines(page: PageImage) -> list[OcrLine]` (adapter decodes to numpy internally) — `OcrLine(text, bbox_norm, score)`
 * Models packaged with the adapter (no runtime download); one engine instance per process; thread count from
   settings; quad points → normalized axis-aligned box using the size of the image actually given to OCR.
 
 ### FS-AD-05 `OnnxAmountReader.read`
-`def read(crop: ImageArray) -> AmountRead` — `AmountRead(text, value: Money|None, seq_prob, latency_ms)`
+`def read(crop: PageImage) -> AmountRead` (adapter decodes to numpy internally) — `AmountRead(text, value: Money|None, seq_prob, latency_ms)`
 * Preprocess exactly as training (grayscale, height 32, aspect kept); ONNX session created once; greedy decode;
   `value = parse_money(text)` if it parses, else `None` (the disagreement is a signal, not an error).
 

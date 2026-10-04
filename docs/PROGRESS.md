@@ -7,8 +7,8 @@ Status: ⬜ not started · 🟨 in progress · 🟥 blocked · ✅ done (gate gr
 | CP | Title | Planned week | Status | Started | Done | Hours | Gate | Log |
 |---|---|---|---|---|---|---|---|---|
 | 00 | Accounts, budgets, guardrails | W1 | ⬜ | | | | | |
-| 01 | Monorepo skeleton + toolchain + CI | W1 | ⬜ | | | | | |
-| 02 | Domain model, FSM, ports | W1 | ⬜ | | | | | |
+| 01 | Monorepo skeleton + toolchain + CI | W1 | ✅ | 2026-10-01 | 2026-10-02 | *(Arka)* | PASS (Mac + CI) | [CP-01](progress/CP-01.md) |
+| 02 | Domain model, FSM, ports | W1 | 🟨 | 2026-10-04 | | | PASS (AI VM) | [CP-02](progress/CP-02.md) |
 | 03 | Money, dates, NPWP/NITKU [LC] | W1 | ⬜ | | | | | |
 | 04 | Terbilang, arithmetic, tax [H] → M0 | W1 | ⬜ | | | | | |
 | 05 | Data sources, licenses, manifests | W2 | ⬜ | | | | | |

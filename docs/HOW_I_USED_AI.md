@@ -20,4 +20,5 @@ All source code, tests and most documentation drafts. Decisions recorded as ADRs
 | CP | AI did | I decided / tested / changed |
 |---|---|---|
 | 00 | — | Accounts, budgets, ADR decisions *(pending)* |
-| 01 | Monorepo config, toolchain, CI (I built the folder structure myself) | *(to fill after my testing)* |
+| 01 | Filled 66 config/CI/doc files; ran break-it 2, 3, 4, 6 in a scratch copy; drafted the test record and explain-back answers at my request | Built the 93-folder / 373-file structure myself; ran setup + gates on my Mac; did break-it 1; created the GitHub repo and checked CI; found 5 issues (wrong guide step, zsh comments, index.lock, cSpell, empty workflows); removed the AI co-author trailer from history. Still mine: break-it 5, rewriting the answers in my own words |
+| 02 | Proposed 6 design decisions with reasons; after my approval filled 17 files (models, errors, ports, schema export, 273 tests, gate); ran the break-it table before handing over | Asked for the reasoning behind every decision; *(to fill: what I tested, own test cases, what I changed)* |

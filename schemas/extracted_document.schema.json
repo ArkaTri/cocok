@@ -1,0 +1,291 @@
+{
+  "$defs": {
+    "DocType": {
+      "description": "Kinds of document Cocok handles (blueprint §3.1).",
+      "enum": [
+        "purchase_order",
+        "invoice",
+        "nota",
+        "kwitansi",
+        "surat_jalan"
+      ],
+      "title": "DocType",
+      "type": "string"
+    },
+    "LineItem": {
+      "additionalProperties": false,
+      "description": "One row of goods or services on a document.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Item name exactly as written.",
+          "title": "Description"
+        },
+        "line_total": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "qty": {
+          "anyOf": [
+            {
+              "description": "Exact quantity as a string with a dot decimal, e.g. '2' or '2.5'.",
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Qty"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unit as written, e.g. 'pcs', 'kg', 'sak'.",
+          "title": "Unit"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "LineItem",
+      "type": "object"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "description": "Whole Indonesian rupiah (integer, never a float).",
+      "properties": {
+        "amount_idr": {
+          "title": "Amount Idr",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "amount_idr"
+      ],
+      "title": "Money",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Fields read from one business document. Unknown or unreadable fields are null.",
+  "properties": {
+    "amount_in_words": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Amount in words (terbilang), raw text as written.",
+      "title": "Amount In Words"
+    },
+    "doc_date": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Document date, YYYY-MM-DD.",
+      "title": "Doc Date"
+    },
+    "doc_number": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Document number as written.",
+      "title": "Doc Number"
+    },
+    "doc_type": {
+      "$ref": "#/$defs/DocType"
+    },
+    "line_items": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LineItem"
+      },
+      "title": "Line Items",
+      "type": "array"
+    },
+    "payer_name": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Kwitansi 'Sudah terima dari' (received from).",
+      "title": "Payer Name"
+    },
+    "po_reference": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Purchase-order number referenced.",
+      "title": "Po Reference"
+    },
+    "received_by": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Name of the person who received.",
+      "title": "Received By"
+    },
+    "subtotal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "tax_amount": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "total_amount": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "vendor_name": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Seller / issuer name as written.",
+      "title": "Vendor Name"
+    },
+    "vendor_nitku": {
+      "anyOf": [
+        {
+          "pattern": "^\\d{22}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Vendor place-of-business ID: 16-digit NPWP + 6-digit code.",
+      "title": "Vendor Nitku"
+    },
+    "vendor_npwp": {
+      "anyOf": [
+        {
+          "pattern": "^\\d{16}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Vendor tax ID, normalized to exactly 16 digits.",
+      "title": "Vendor Npwp"
+    }
+  },
+  "required": [
+    "doc_type"
+  ],
+  "title": "ExtractedDocument",
+  "type": "object"
+}

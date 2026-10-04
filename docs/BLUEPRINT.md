@@ -473,7 +473,7 @@ embeddings_if_needed: [voyage-4 family (free token allowance) or local open-sour
 
 - **Typing:** all public functions typed; `mypy --strict` on `core` and `adapters`.
 - **Docstrings (v2.1):** Google style on every public function/class in `core`, `adapters`, `api/services`, `ml/eval`; `ruff` `D` rules enforce presence; `core` docstrings contain runnable `Examples:` executed by `pytest --doctest-modules packages/core`. Content follows the FUNCTION_SPECS entry (the docstring's first line ends with its FS-ID, e.g. `"""Parse Indonesian rupiah text (FS-CV-01).`).
-- **Errors:** typed domain errors in `core/errors.py` (`DomainError` → `ValidationError`, `InvalidTransition`, `RetryableError`, …); no bare `except`; API maps errors to problem+json; never return stack traces to clients.
+- **Errors:** typed domain errors in `core/errors.py` (`DomainError` → `DomainValidationError`, `InvalidTransition`, `RetryableError`, …); no bare `except`; API maps errors to problem+json; never return stack traces to clients.
 - **Logging:** structlog JSON to stdout; every line carries `request_id` / `job_id` / `document_id`; a redaction processor removes secrets and personal data (NPWP/NIK masked to last 4).
 - **Config:** pydantic-settings, 12-factor; `.env.example` documents every variable; app fails fast at startup on invalid config.
 - **API contract:** OpenAPI generated from FastAPI; TypeScript client generated in CI; breaking changes require `/api/v2`; Schemathesis runs against the spec in CI.
